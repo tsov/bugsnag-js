@@ -209,6 +209,42 @@
     }
   };
 
+  // Setup breadcrumbs for click events
+  self.setupClickBreadcrumbs = function(context) {
+    if (!_hasAddEventListener) {
+      return;
+    }
+
+    var callback = function(event) {
+      if(!getBreadcrumbSetting("autoBreadcrumbsClicks")) {
+        return;
+      }
+
+      var targetText, targetSelector;
+      // Cross origin security might prevent us from accessing the event target
+
+      try {
+        targetText = nodeText(event.target);
+        targetSelector = nodeLabel(event.target);
+      } catch (e) {
+        targetText = "[hidden]";
+        targetSelector = "[hidden]";
+        log("Cross domain error when tracking click event. See https://docs.bugsnag.com/platforms/browsers/faq/#3-cross-origin-script-errors");
+      }
+
+      self.leaveBreadcrumb({
+        type: "user",
+        name: "UI click",
+        metaData: {
+          targetText: targetText,
+          targetSelector: targetSelector
+        }
+      });
+    };
+
+    context.addEventListener("click", callback, true);
+  };
+
   function breadcrumbsAreEqual(crumb1, crumb2) {
     return crumb1 && crumb2 &&
       crumb1.type === crumb2.type &&
@@ -269,42 +305,6 @@
   }
 
   var _hasAddEventListener = (typeof window.addEventListener !== "undefined");
-
-  // Setup breadcrumbs for click events
-  function setupClickBreadcrumbs() {
-    if (!_hasAddEventListener) {
-      return;
-    }
-
-    var callback = function(event) {
-      if(!getBreadcrumbSetting("autoBreadcrumbsClicks")) {
-        return;
-      }
-
-      var targetText, targetSelector;
-      // Cross origin security might prevent us from accessing the event target
-
-      try {
-        targetText = nodeText(event.target);
-        targetSelector = nodeLabel(event.target);
-      } catch (e) {
-        targetText = "[hidden]";
-        targetSelector = "[hidden]";
-        log("Cross domain error when tracking click event. See https://docs.bugsnag.com/platforms/browsers/faq/#3-cross-origin-script-errors");
-      }
-
-      self.leaveBreadcrumb({
-        type: "user",
-        name: "UI click",
-        metaData: {
-          targetText: targetText,
-          targetSelector: targetSelector
-        }
-      });
-    };
-
-    window.addEventListener("click", callback, true);
-  }
 
   // stub functions for old browsers
   self.enableAutoBreadcrumbsConsole = function() {};
@@ -1226,7 +1226,7 @@
   }
 
   // setup auto breadcrumb tracking
-  setupClickBreadcrumbs();
+  self.setupClickBreadcrumbs();
   setupConsoleBreadcrumbs();
   setupNavigationBreadcrumbs();
 
